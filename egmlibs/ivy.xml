@@ -1,0 +1,5 @@
+<ivy-module version="2.0">
+    <info organisation="br.com.edisongustavo" module="egmlibs"/>
+    <dependencies>
+    </dependencies>
+</ivy-module>
