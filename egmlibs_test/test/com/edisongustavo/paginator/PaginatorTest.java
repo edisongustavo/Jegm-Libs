@@ -1,47 +1,32 @@
 package com.edisongustavo.paginator;
+
 import static ch.lambdaj.Lambda.extract;
 import static ch.lambdaj.Lambda.on;
-import static ch.lambdaj.collection.LambdaCollections.with;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import com.edisongustavo.paginator.PaginatedProvider;
-import com.edisongustavo.paginator.Paginator;
-
 public class PaginatorTest {
 	private SimpleProvider provider;
 	private Paginator<StringAndWeight, Float> paginator;
 
-	private class StringAndWeight {
-		public Float weight;
-		public String string;
-
-		public Float getWeight() {
-			return weight;
-		}
-
-		public String getString() {
-			return string;
-		}
-
-		@Override
-		public String toString() {
-			return "" + weight + "->" + string;
-		}
-
+	private static class StringAndWeight {
 		@Override
 		public int hashCode() {
 			final int prime = 31;
 			int result = 1;
-			result = prime * result + getOuterType().hashCode();
 			result = prime * result
 					+ ((string == null) ? 0 : string.hashCode());
 			result = prime * result
@@ -58,8 +43,6 @@ public class PaginatorTest {
 			if (getClass() != obj.getClass())
 				return false;
 			StringAndWeight other = (StringAndWeight) obj;
-			if (!getOuterType().equals(other.getOuterType()))
-				return false;
 			if (string == null) {
 				if (other.string != null)
 					return false;
@@ -73,43 +56,37 @@ public class PaginatorTest {
 			return true;
 		}
 
-		private PaginatorTest getOuterType() {
-			return PaginatorTest.this;
+		public Float weight;
+		public String string;
+
+		public Float getWeight() {
+			return weight;
+		}
+
+		public String getString() {
+			return string;
+		}
+
+		@Override
+		public String toString() {
+			return "" + weight + "->" + string;
 		}
 	}
 
-	private class SimpleProvider implements
-			PaginatedProvider<StringAndWeight, Float> {
-
-		private List<StringAndWeight> results = new ArrayList<StringAndWeight>();
+	private class SimpleProvider extends
+			AbstractProvider<StringAndWeight, Float> {
 
 		@Override
-		public List<StringAndWeight> provide(Float parameter, Integer limit) {
-			ArrayList<StringAndWeight> ret = new ArrayList<StringAndWeight>();
-			for (StringAndWeight element : results) {
-				if (parameter == null
-						|| element.weight.compareTo(parameter) <= 0)
-					ret.add(element);
-
-				if (limit != null && ret.size() == limit)
-					break;
-			}
-			return ret;
+		public Float getParameter(StringAndWeight obj) {
+			return obj.weight;
 		}
 
 		public void add(float weight, String value) {
 			StringAndWeight obj = new StringAndWeight();
 			obj.weight = weight;
 			obj.string = value;
-			results.add(obj);
 
-			with(results).sort(on(StringAndWeight.class).getWeight());
-			Collections.reverse(results);
-		}
-
-		@Override
-		public Float getParameter(StringAndWeight obj) {
-			return obj.weight;
+			super.add(obj);
 		}
 	}
 
@@ -127,9 +104,15 @@ public class PaginatorTest {
 		provider.add(4, "D");
 		provider.add(5, "E");
 
-		List<String> all = extract(paginator.iterator(),
-				on(StringAndWeight.class).getString());
-		assertThat(all, containsInAnyOrder("A", "B", "C", "D", "E"));
+		assertTrue(paginator.hasNext());
+
+		assertEquals("E", paginator.next().string);
+		assertEquals("D", paginator.next().string);
+		assertEquals("C", paginator.next().string);
+		assertEquals("B", paginator.next().string);
+		assertEquals("A", paginator.next().string);
+
+		assertFalse(paginator.hasNext());
 	}
 
 	@Test
@@ -140,9 +123,21 @@ public class PaginatorTest {
 		provider.add(3, "D");
 		provider.add(4, "E");
 
-		List<String> all = extract(paginator.iterator(),
+		assertEquals("E", paginator.next().string);
+		assertEquals("D", paginator.next().string);
+
+		List<String> items = extract(collectFirst(paginator, 2),
 				on(StringAndWeight.class).getString());
-		assertThat(all, containsInAnyOrder("A", "B", "C", "D", "E"));
+		assertThat(items, containsInAnyOrder("C", "B"));
+
+		assertEquals("A", paginator.next().string);
+	}
+
+	private static <T> List<T> collectFirst(Iterator<T> it, int number) {
+		List<T> ret = new ArrayList<T>();
+		while (number-- > 0)
+			ret.add(it.next());
+		return ret;
 	}
 
 	@Test
@@ -154,8 +149,8 @@ public class PaginatorTest {
 		provider.add(2, "E");
 		provider.add(3, "F");
 
-		List<String> all = extract(paginator.iterator(),
-				on(StringAndWeight.class).getString());
+		List<String> all = extract(paginator, on(StringAndWeight.class)
+				.getString());
 		assertThat(all, containsInAnyOrder("A", "B", "C", "D", "E", "F"));
 	}
 
@@ -169,8 +164,8 @@ public class PaginatorTest {
 		provider.add(2, "D");
 		provider.add(3, "E");
 
-		List<String> all = extract(paginator.iterator(),
-				on(StringAndWeight.class).getString());
+		List<String> all = extract(paginator, on(StringAndWeight.class)
+				.getString());
 		assertThat(all, containsInAnyOrder("A", "B", "C", "D", "E"));
 	}
 
@@ -186,8 +181,8 @@ public class PaginatorTest {
 		provider.add(2, "F");
 		provider.add(3, "G");
 
-		List<String> all = extract(paginator.iterator(),
-				on(StringAndWeight.class).getString());
+		List<String> all = extract(paginator, on(StringAndWeight.class)
+				.getString());
 		assertThat(all, hasItem("G"));
 		assertThat(all, anyOf( //
 				hasItem("B") //
@@ -204,15 +199,13 @@ public class PaginatorTest {
 	public void limitLargerThanNumberOfItems() {
 		provider.add(1, "A");
 		provider.add(2, "B");
-		List<String> all = extract(paginator.iterator(),
-				on(StringAndWeight.class).getString());
+		List<String> all = extract(paginator, on(StringAndWeight.class)
+				.getString());
 		assertThat(all, containsInAnyOrder("A", "B"));
 	}
 
 	@Test
-	public void emptyCollection() {
-		List<String> all = extract(paginator.iterator(),
-				on(StringAndWeight.class).getString());
-		assertTrue(all.isEmpty());
+	public void hasNextOnEmptyCollection() {
+		assertFalse(paginator.hasNext());
 	}
 }

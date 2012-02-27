@@ -5,7 +5,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-public class Paginator<T, P extends Comparable<P>> {
+public class Paginator<T, P extends Comparable<? super P>> implements
+		Iterator<T> {
 
 	private enum ParameterOrder {
 		ASCENDING, DESCENDING
@@ -29,54 +30,41 @@ public class Paginator<T, P extends Comparable<P>> {
 		this.limit = this.actualLimit = limit;
 	}
 
-	private class PaginatedIterator implements Iterator<T> {
+	@Override
+	public boolean hasNext() {
+		if (!items.isEmpty())
+			return true;
 
-		private final Paginator<T, P> paginator;
+		fetch();
 
-		public PaginatedIterator(Paginator<T, P> paginator) {
-			this.paginator = paginator;
-		}
+		return !items.isEmpty();
+	}
 
-		@Override
-		public boolean hasNext() {
-			if (!items.isEmpty())
-				return true;
-
-			fetch();
-
-			return !items.isEmpty();
-		}
-
-		@Override
-		public T next() {
-			if (!items.isEmpty())
-				return items.pop();
-
-			fetch();
-
+	@Override
+	public T next() {
+		if (!items.isEmpty())
 			return items.pop();
-		}
 
-		private void fetch() {
-			while (items.size() < paginator.limit) {
-				boolean b = paginator.tryFetch(items, uniqueFetchedItems);
-				if (b)
-					break;
-			}
-		}
-		
-		@Override
-		public void remove() {
-			items.remove();
-		}
+		fetch();
 
-		private List<T> uniqueFetchedItems = new ArrayList<T>();
-		private LinkedList<T> items = new LinkedList<T>();
+		return items.pop();
 	}
 
-	public Iterator<T> iterator() {
-		return new PaginatedIterator(this);
+	private void fetch() {
+		while (items.size() < limit) {
+			boolean b = tryFetch(items, uniqueFetchedItems);
+			if (b)
+				break;
+		}
 	}
+
+	@Override
+	public void remove() {
+		items.remove();
+	}
+
+	private List<T> uniqueFetchedItems = new ArrayList<T>();
+	private LinkedList<T> items = new LinkedList<T>();
 
 	private boolean tryFetch(List<T> ret, List<T> uniqueFetchedItems) {
 		List<T> fetchedItems = provider.provide(parameter, actualLimit);
