@@ -198,6 +198,7 @@ public class PaginatorTest {
 
 	@Test
 	public void limitLargerThanNumberOfItems() {
+		//limit is 3
 		provider.add(1, "A");
 		provider.add(2, "B");
 		List<String> all = extract(paginator, on(StringAndWeight.class)

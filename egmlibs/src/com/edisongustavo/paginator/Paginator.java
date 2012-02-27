@@ -5,6 +5,28 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * A paginator that fetch items based on a parameter.
+ * <p>
+ * This class implements an Iterator but the items are fetched in bulks of N
+ * items. New "fetchs" are only done when the already fetched items were
+ * consumed through the iterator.
+ * <p>
+ * The responsibility of "fetching" the items must be provided through the
+ * interface {@link PaginatedProvider}
+ * <p>
+ * The motivation behind this method is to be able to paginate through specific
+ * fields without resorting to the 'SQL limit index,size' which runs in
+ * exponential time
+ * 
+ * @author Edison Gustavo Muenz <edisongustavo@gmail.com>
+ * 
+ * @param <T>
+ *            The paginated type
+ * @param <P>
+ *            The parameter that we will paginate at
+ * @see {@link PaginatedProvider}
+ */
 public class Paginator<T, P extends Comparable<? super P>> implements
 		Iterator<T> {
 
@@ -18,6 +40,10 @@ public class Paginator<T, P extends Comparable<? super P>> implements
 	private P parameter;
 	private ParameterOrder parameterOrder;
 	private Integer maxLimit;
+
+	private List<T> uniqueFetchedItems = new ArrayList<T>();
+	private LinkedList<T> items = new LinkedList<T>();
+	private List<Validator<T>> validators = new ArrayList<Validator<T>>();
 
 	public Paginator(PaginatedProvider<T, P> provider, int limit) {
 		this(provider, limit, null);
@@ -62,10 +88,6 @@ public class Paginator<T, P extends Comparable<? super P>> implements
 	public void remove() {
 		items.remove();
 	}
-
-	private List<T> uniqueFetchedItems = new ArrayList<T>();
-	private LinkedList<T> items = new LinkedList<T>();
-	private List<Validator<T>> validators = new ArrayList<Validator<T>>();
 
 	private boolean tryFetch(List<T> ret, List<T> uniqueFetchedItems) {
 		List<T> fetchedItems = provider.provide(parameter, actualLimit);

@@ -11,14 +11,14 @@ public abstract class AbstractProvider<T, P extends Comparable<? super P>>
 	protected List<T> results = new ArrayList<T>();
 
 	@Override
-	public List<T> provide(P parameter, Integer limit) {
+	public List<T> provide(P parameter, int limit) {
 		ArrayList<T> ret = new ArrayList<T>();
 		for (T element : results) {
 			if (parameter == null
 					|| getParameter(element).compareTo(parameter) <= 0)
 				ret.add(element);
 
-			if (limit != null && ret.size() == limit)
+			if (ret.size() == limit)
 				break;
 		}
 		return ret;
