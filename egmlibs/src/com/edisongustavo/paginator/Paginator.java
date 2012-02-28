@@ -43,7 +43,6 @@ public class Paginator<T, P extends Comparable<? super P>> implements
 
 	private List<T> uniqueFetchedItems = new ArrayList<T>();
 	private LinkedList<T> items = new LinkedList<T>();
-	private List<Validator<T>> validators = new ArrayList<Validator<T>>();
 
 	public Paginator(PaginatedProvider<T, P> provider, int limit) {
 		this(provider, limit, null);
@@ -97,8 +96,6 @@ public class Paginator<T, P extends Comparable<? super P>> implements
 		fetchedItems.removeAll(uniqueFetchedItems);
 		uniqueFetchedItems.addAll(fetchedItems);
 
-		applyValidators(fetchedItems);
-
 		ret.addAll(fetchedItems);
 
 		if (fetchedItems.isEmpty()) {
@@ -126,15 +123,6 @@ public class Paginator<T, P extends Comparable<? super P>> implements
 		}
 
 		return false;
-	}
-
-	private void applyValidators(List<T> fetchedItems) {
-		for (Iterator<T> iterator = fetchedItems.iterator(); iterator.hasNext();) {
-			T item = iterator.next();
-			for (Validator<T> v : validators)
-				if (!v.isValid(item))
-					iterator.remove();
-		}
 	}
 
 	private void resetLimit() {
@@ -173,9 +161,5 @@ public class Paginator<T, P extends Comparable<? super P>> implements
 
 	public void setMaxLimit(int limit) {
 		this.maxLimit = limit;
-	}
-
-	public void addValidator(Validator<T> validator) {
-		this.validators.add(validator);
 	}
 }

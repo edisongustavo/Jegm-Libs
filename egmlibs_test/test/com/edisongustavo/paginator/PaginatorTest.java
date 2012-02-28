@@ -210,24 +210,4 @@ public class PaginatorTest {
 	public void hasNextOnEmptyCollection() {
 		assertFalse(paginator.hasNext());
 	}
-
-	@Test
-	public void validator() {
-		Validator<StringAndWeight> validator = new Validator<StringAndWeight>() {
-			@Override
-			public boolean isValid(StringAndWeight obj) {
-				return !obj.string.equals("A");
-			}
-
-		};
-		paginator.addValidator(validator);
-
-		provider.add(1, "A");
-		provider.add(2, "B");
-		provider.add(3, "C");
-
-		List<String> all = extract(paginator, on(StringAndWeight.class)
-				.getString());
-		assertThat(all, contains("C", "B"));
-	}
 }
